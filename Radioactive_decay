@@ -1,0 +1,76 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Function to simulate radioactive decay using the inverse transform method
+def simulate_decay(num_atoms, decay_constant):
+    # Generate decay times using the inverse transform method
+    u = np.random.uniform(0, 1, num_atoms)  # Generate uniform random numbers
+    decay_times = -np.log(1.0 - u) / decay_constant  # Inverse transform method
+    return decay_times
+
+# Function to perform linear least squares fitting of the form y = A * exp(-b * t)
+def fit_exponential(times, values):
+    n = len(times)
+    ln_values = np.log(values)
+
+    # Calculate the least squares parameters
+    sum_t = np.sum(times)
+    sum_ln_y = np.sum(ln_values)
+    sum_t_ln_y = np.sum(times * ln_values)
+    sum_t_squared = np.sum(times ** 2)
+
+    # Calculate lambda and ln(A)
+    lambda_ = (n * sum_t_ln_y - sum_t * sum_ln_y) / (n * sum_t_squared - sum_t ** 2)
+    ln_A = (sum_ln_y - lambda_ * sum_t) / n
+    A = np.exp(ln_A)  # A = exp(ln(A))
+    
+    return A, lambda_
+
+# Parameters
+num_atoms = 200  # Number of atoms to simulate
+half_life = 3  # Half-life of the substance
+decay_constant = np.log(2) / half_life  # Decay constant λ
+
+# Calculate the expected decay constant
+expected_lambda = np.log(2) / half_life
+print(f"Expected Lambda = {expected_lambda}")
+
+# Simulate decay
+decay_times = simulate_decay(num_atoms, decay_constant)
+
+# Sort decay times for cumulative distribution
+decay_times.sort()
+
+# Calculate decay values
+decay_values = num_atoms * np.exp(-decay_constant * decay_times)
+
+# Fit the data to extract A and lambda
+A, lambda_ = fit_exponential(decay_times, decay_values)
+
+# Print the fitted values
+print("Fitted Parameters:")
+print(f"A = {A}")
+print(f"lamda = {-np.log(2) / lambda_} Adjusted to show equivalent half-life")  # Adjusted to show equivalent half-life
+
+# Plotting the results
+plt.figure(figsize=(12, 6))
+
+# Cumulative distribution plot
+plt.subplot(1, 2, 1)
+cumulative_prob = np.arange(1, num_atoms + 1) / num_atoms
+plt.plot(decay_times, cumulative_prob, marker='o', linestyle='-', color='b')
+plt.title('Cumulative Distribution of Decay Times')
+plt.xlabel('Decay Time (s)')
+plt.ylabel('Cumulative Probability')
+plt.grid()
+
+# Decay results plot
+plt.subplot(1, 2, 2)
+plt.plot(decay_times, decay_values, marker='x', linestyle='-', color='r')
+plt.title('Decay Values Over Time')
+plt.xlabel('Decay Time (s)')
+plt.ylabel('Decay Value')
+plt.grid()
+
+plt.tight_layout()
+plt.show()
